@@ -105,7 +105,7 @@ final List<_Group> _catalog = <_Group>[
         (_) => const _ActionSheetPage()),
     _Entry('CupertinoContextMenu', 'Long-press context menu',
         (_) => const _ContextMenuPage()),
-    _Entry('Miuix spring menu', 'Miuix popup motion, ported to Flutter',
+    _Entry('Miuix dialog motion', 'spring(0.88, 450), ported to Flutter',
         (_) => const _MiuixSpringPage()),
   ]),
   _Group('Lists & forms', <_Entry>[
@@ -1793,8 +1793,8 @@ class _MiuixSpringPageState extends State<_MiuixSpringPage>
   static final SpringDescription _miuixMenuSpring =
       SpringDescription.withDampingRatio(
     mass: 1,
-    stiffness: 362.5,
-    ratio: 0.82,
+    stiffness: 450,
+    ratio: 0.88,
   );
 
   late final AnimationController _controller = AnimationController(
@@ -1827,10 +1827,11 @@ class _MiuixSpringPageState extends State<_MiuixSpringPage>
     return _DemoPage(
       title: 'Miuix spring menu',
       description:
-          'The Miuix menu motion, rebuilt in Flutter: '
-          'spring(dampingRatio = 0.82, stiffness = 362.5), the spec behind '
-          'Miuix ListPopup, driven by SpringSimulation instead of a Curve. '
-          'Long-press the card.',
+          'The Miuix dialog motion, rebuilt in Flutter: '
+          'slideInVertically with spring(dampingRatio = 0.88, stiffness = 450), '
+          'the phone-size dialog enter transition from MiuixPopupUtils.kt, '
+          'driven by SpringSimulation instead of a Curve. (Miuix popup menus '
+          'themselves are a plain 200 ms fade.) Long-press the card.',
       children: <Widget>[
         Center(
           child: GestureDetector(
@@ -1844,7 +1845,7 @@ class _MiuixSpringPageState extends State<_MiuixSpringPage>
                 return Column(
                   children: <Widget>[
                     Transform.scale(
-                      scale: 1 - 0.04 * v,
+                      scale: 1.0,
                       child: Container(
                         height: 150,
                         width: 240,
@@ -1876,9 +1877,8 @@ class _MiuixSpringPageState extends State<_MiuixSpringPage>
                       ignoring: !_open,
                       child: Opacity(
                         opacity: v,
-                        child: Transform.scale(
-                          scale: 0.86 + 0.14 * v,
-                          alignment: Alignment.topCenter,
+                        child: Transform.translate(
+                          offset: Offset(0, (1 - v) * 140),
                           child: Container(
                             width: 240,
                             padding: const EdgeInsets.symmetric(vertical: 6),
