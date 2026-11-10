@@ -5,6 +5,7 @@
 // no third-party UI packages in this project.
 
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/services.dart';
 
 void main() {
   runApp(const CupertinoCatalogApp());
@@ -33,9 +34,10 @@ class _CupertinoCatalogAppState extends State<CupertinoCatalogApp> {
     return CupertinoApp(
       title: 'Cupertino Catalog',
       debugShowCheckedModeBanner: false,
+      scrollBehavior: const CupertinoScrollBehavior(),
       theme: CupertinoThemeData(
         brightness: _brightness,
-        primaryColor: CupertinoColors.activeBlue,
+        primaryColor: CupertinoColors.systemBlue,
         scaffoldBackgroundColor: _brightness == Brightness.light
             ? const Color(0xFFF2F2F7)
             : CupertinoColors.black,
@@ -78,6 +80,12 @@ final List<_Group> _catalog = <_Group>[
         (_) => const _TextFieldPage()),
     _Entry('CupertinoTabBar', 'Bottom tab bar',
         (_) => const _TabBarPage()),
+    _Entry('CupertinoCheckbox', 'Checkboxes, tinted and tri-state',
+        (_) => const _CheckboxPage()),
+    _Entry('CupertinoRadio', 'Radio group, two iOS styles',
+        (_) => const _RadioPage()),
+    _Entry('CupertinoExpansionTile', 'Expandable disclosure rows',
+        (_) => const _ExpansionTilePage()),
   ]),
   _Group('Pickers', <_Entry>[
     _Entry('CupertinoPicker', 'Scrolling wheel picker',
@@ -102,6 +110,14 @@ final List<_Group> _catalog = <_Group>[
         (_) => const _ListSectionPage()),
     _Entry('CupertinoFormSection', 'Form rows with inline controls',
         (_) => const _FormSectionPage()),
+  ]),
+  _Group('Scrolling & navigation', <_Entry>[
+    _Entry('CupertinoScrollbar', 'Always-visible iOS scrollbar',
+        (_) => const _ScrollbarPage()),
+    _Entry('CupertinoSliverRefreshControl', 'Pull to refresh',
+        (_) => const _RefreshPage()),
+    _Entry('CupertinoNavigationBar', 'Compact bar in a full-screen dialog',
+        (_) => const _NavBarPage()),
   ]),
   _Group('Style', <_Entry>[
     _Entry('CupertinoColors', 'System colors, light & dark aware',
@@ -453,6 +469,7 @@ class _SegmentedPageState extends State<_SegmentedPage> {
         CupertinoSegmentedControl<String>(
           groupValue: _segmented,
           onValueChanged: (String value) {
+            HapticFeedback.selectionClick();
             setState(() => _segmented = value);
           },
           children: const <String, Widget>{
@@ -583,7 +600,10 @@ class _TabBarPageState extends State<_TabBarPage> {
           height: 56,
           child: CupertinoTabBar(
             currentIndex: _index,
-            onTap: (int i) => setState(() => _index = i),
+            onTap: (int i) {
+              HapticFeedback.selectionClick();
+              setState(() => _index = i);
+            },
             items: const <BottomNavigationBarItem>[
               BottomNavigationBarItem(
                 icon: Icon(CupertinoIcons.search),
@@ -1388,6 +1408,355 @@ class _IconsPage extends StatelessWidget {
           ],
         ),
       ],
+    );
+  }
+}
+
+
+// ---------------------------------------------------------------------------
+// Added widgets: checkbox, radio, expansion tile, scrollbar, pull-to-refresh
+// and the compact navigation bar.
+// ---------------------------------------------------------------------------
+
+class _CheckboxPage extends StatefulWidget {
+  const _CheckboxPage();
+
+  @override
+  State<_CheckboxPage> createState() => _CheckboxPageState();
+}
+
+class _CheckboxPageState extends State<_CheckboxPage> {
+  bool _remember = true;
+  bool _wifi = false;
+  bool? _triState = false;
+
+  @override
+  Widget build(BuildContext context) {
+    Widget row(String label, Widget checkbox) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 7),
+        child: Row(
+          children: <Widget>[
+            checkbox,
+            const SizedBox(width: 12),
+            Expanded(child: Text(label)),
+          ],
+        ),
+      );
+    }
+
+    return _DemoPage(
+      title: 'CupertinoCheckbox',
+      description:
+          'The iOS 15+ checkbox: a rounded square that fills with the tint '
+          'color when selected, plus a tri-state mode that can show a dash.',
+      children: <Widget>[
+        row(
+          'Remember this device',
+          CupertinoCheckbox(
+            value: _remember,
+            onChanged: (bool? v) => setState(() => _remember = v ?? false),
+          ),
+        ),
+        row(
+          'Sync over Wi-Fi only',
+          CupertinoCheckbox(
+            value: _wifi,
+            activeColor: CupertinoColors.activeGreen,
+            onChanged: (bool? v) => setState(() => _wifi = v ?? false),
+          ),
+        ),
+        row(
+          'Disabled',
+          const CupertinoCheckbox(value: true, onChanged: null),
+        ),
+        const SizedBox(height: 18),
+        const _DemoLabel('Tri-state (value: null)'),
+        row(
+          'Select all',
+          CupertinoCheckbox(
+            tristate: true,
+            value: _triState,
+            onChanged: (bool? v) => setState(() => _triState = v),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _RadioPage extends StatefulWidget {
+  const _RadioPage();
+
+  @override
+  State<_RadioPage> createState() => _RadioPageState();
+}
+
+class _RadioPageState extends State<_RadioPage> {
+  String _size = 'Medium';
+
+  @override
+  Widget build(BuildContext context) {
+    void select(String? value) {
+      if (value == null) {
+        return;
+      }
+      HapticFeedback.selectionClick();
+      setState(() => _size = value);
+    }
+
+    Widget option(String value, {bool checkmark = false}) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 5),
+        child: Row(
+          children: <Widget>[
+            CupertinoRadio<String>(
+              value: value,
+              groupValue: _size,
+              useCheckmarkStyle: checkmark,
+              onChanged: select,
+            ),
+            const SizedBox(width: 10),
+            Text(value),
+          ],
+        ),
+      );
+    }
+
+    return _DemoPage(
+      title: 'CupertinoRadio',
+      description:
+          'Single choice from a set. `useCheckmarkStyle` renders the flat '
+          'checkmark list style used by iOS settings instead of the dot.',
+      children: <Widget>[
+        const _DemoLabel('Dot style'),
+        option('Small'),
+        option('Medium'),
+        option('Large'),
+        const SizedBox(height: 18),
+        const _DemoLabel('Checkmark style'),
+        option('Comfortable', checkmark: true),
+        option('Compact', checkmark: true),
+        const SizedBox(height: 16),
+        Center(child: Text('Selected: $_size')),
+      ],
+    );
+  }
+}
+
+class _ExpansionTilePage extends StatelessWidget {
+  const _ExpansionTilePage();
+
+  @override
+  Widget build(BuildContext context) {
+    return _DemoPage(
+      title: 'CupertinoExpansionTile',
+      description:
+          'A disclosure row that reveals its content in place — the iOS way to '
+          'tuck away advanced settings without leaving the screen.',
+      children: <Widget>[
+        CupertinoListSection.insetGrouped(
+          children: <Widget>[
+            CupertinoExpansionTile(
+              title: const Text('Wi-Fi'),
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                child: Text(
+                  'Automatically join known networks when they are in range. '
+                  'iOS keeps the row height steady while it expands.',
+                ),
+              ),
+            ),
+            CupertinoExpansionTile(
+              title: const Text('Advanced'),
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                child: Text(
+                  'Content of the tile can be any widget, including controls.',
+                ),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class _ScrollbarPage extends StatefulWidget {
+  const _ScrollbarPage();
+
+  @override
+  State<_ScrollbarPage> createState() => _ScrollbarPageState();
+}
+
+class _ScrollbarPageState extends State<_ScrollbarPage> {
+  final ScrollController _controller = ScrollController();
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return _DemoPage(
+      title: 'CupertinoScrollbar',
+      description:
+          'The thin iOS scroll indicator. `thumbVisibility: true` keeps it on '
+          'screen; normally it fades out after scrolling stops.',
+      children: <Widget>[
+        Container(
+          height: 240,
+          decoration: _fill(context),
+          child: CupertinoScrollbar(
+            controller: _controller,
+            thumbVisibility: true,
+            child: ListView.builder(
+              controller: _controller,
+              itemCount: 24,
+              itemBuilder: (BuildContext context, int index) {
+                return Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: Text('Row ${index + 1} of 24'),
+                );
+              },
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _RefreshPage extends StatefulWidget {
+  const _RefreshPage();
+
+  @override
+  State<_RefreshPage> createState() => _RefreshPageState();
+}
+
+class _RefreshPageState extends State<_RefreshPage> {
+  int _refreshes = 0;
+
+  @override
+  Widget build(BuildContext context) {
+    return CupertinoPageScaffold(
+      child: CustomScrollView(
+        physics: const BouncingScrollPhysics(
+          parent: AlwaysScrollableScrollPhysics(),
+        ),
+        slivers: <Widget>[
+          const CupertinoSliverNavigationBar(
+            largeTitle: Text('Pull to refresh'),
+          ),
+          CupertinoSliverRefreshControl(
+            onRefresh: () async {
+              await Future<void>.delayed(const Duration(milliseconds: 1200));
+              if (mounted) {
+                setState(() => _refreshes++);
+              }
+            },
+          ),
+          SliverList(
+            delegate: SliverChildListDelegate(<Widget>[
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 8, 20, 56),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Text(
+                      'Drag the list down past the threshold and release. '
+                      'CupertinoSliverRefreshControl shows the iOS spinner and '
+                      'runs onRefresh once the gesture completes.',
+                    ),
+                    const SizedBox(height: 24),
+                    Text(
+                      '$_refreshes',
+                      style: const TextStyle(
+                        fontSize: 44,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const Text('refreshes so far'),
+                  ],
+                ),
+              ),
+            ]),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _NavBarPage extends StatelessWidget {
+  const _NavBarPage();
+
+  @override
+  Widget build(BuildContext context) {
+    return _DemoPage(
+      title: 'CupertinoNavigationBar',
+      description:
+          'The compact bar, used when a large title is not wanted. iOS '
+          'presents creation flows as full-screen dialogs that slide up, which '
+          'is what the button below does.',
+      children: <Widget>[
+        CupertinoButton.filled(
+          onPressed: () {
+            HapticFeedback.lightImpact();
+            Navigator.of(context).push(
+              CupertinoPageRoute<void>(
+                fullscreenDialog: true,
+                builder: (_) => const _FullscreenDialogDemo(),
+              ),
+            );
+          },
+          child: const Text('Present full-screen dialog'),
+        ),
+      ],
+    );
+  }
+}
+
+class _FullscreenDialogDemo extends StatelessWidget {
+  const _FullscreenDialogDemo();
+
+  @override
+  Widget build(BuildContext context) {
+    return CupertinoPageScaffold(
+      navigationBar: CupertinoNavigationBar(
+        middle: const Text('New Event'),
+        leading: CupertinoButton(
+          padding: EdgeInsets.zero,
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Cancel'),
+        ),
+        trailing: CupertinoButton(
+          padding: EdgeInsets.zero,
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Add'),
+        ),
+      ),
+      child: ListView(
+        padding: const EdgeInsets.all(20),
+        children: const <Widget>[
+          CupertinoListSection.insetGrouped(
+            header: Text('Event'),
+            children: <Widget>[
+              CupertinoListTile(title: Text('Title'), subtitle: Text('Untitled')),
+              CupertinoListTile(title: Text('Location'), subtitle: Text('None')),
+            ],
+          ),
+          SizedBox(height: 12),
+          Text(
+            'The bar above is a plain CupertinoNavigationBar: compact height, '
+            'translucent background, Cancel on the leading side and the '
+            'confirming action on the trailing side.',
+          ),
+        ],
+      ),
     );
   }
 }
