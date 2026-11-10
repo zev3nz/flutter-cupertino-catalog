@@ -5,6 +5,7 @@
 // no third-party UI packages in this project.
 
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/physics.dart';
 import 'package:flutter/services.dart';
 
 void main() {
@@ -104,6 +105,8 @@ final List<_Group> _catalog = <_Group>[
         (_) => const _ActionSheetPage()),
     _Entry('CupertinoContextMenu', 'Long-press context menu',
         (_) => const _ContextMenuPage()),
+    _Entry('Miuix spring menu', 'Miuix popup motion, ported to Flutter',
+        (_) => const _MiuixSpringPage()),
   ]),
   _Group('Lists & forms', <_Entry>[
     _Entry('CupertinoListSection', 'Inset-grouped list with chevrons',
@@ -1761,6 +1764,167 @@ class _FullscreenDialogDemo extends StatelessWidget {
             'translucent background, Cancel on the leading side and the '
             'confirming action on the trailing side.',
           ),
+        ],
+      ),
+    );
+  }
+}
+
+
+// ---------------------------------------------------------------------------
+// Miuix motion ported to Flutter.
+//
+// Miuix (compose-miuix-ui/miuix) drives its popups and menus with
+//   spring(dampingRatio = 0.82f, stiffness = 362.5f,
+//          visibilityThreshold = 0.0001f)   // ListPopup.kt
+// Compose springs are damped-harmonic oscillators, so the faithful Flutter
+// translation is SpringSimulation, not a Curve.
+// ---------------------------------------------------------------------------
+
+class _MiuixSpringPage extends StatefulWidget {
+  const _MiuixSpringPage();
+
+  @override
+  State<_MiuixSpringPage> createState() => _MiuixSpringPageState();
+}
+
+class _MiuixSpringPageState extends State<_MiuixSpringPage>
+    with SingleTickerProviderStateMixin {
+  static final SpringDescription _miuixMenuSpring =
+      SpringDescription.withDampingRatio(
+    mass: 1,
+    stiffness: 362.5,
+    ratio: 0.82,
+  );
+
+  late final AnimationController _controller = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 600),
+  );
+
+  bool _open = false;
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _toggle() {
+    setState(() => _open = !_open);
+    _controller.animateWith(
+      SpringSimulation(
+        _miuixMenuSpring,
+        _controller.value,
+        _open ? 1.0 : 0.0,
+        _controller.velocity,
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return _DemoPage(
+      title: 'Miuix spring menu',
+      description:
+          'The Miuix menu motion, rebuilt in Flutter: '
+          'spring(dampingRatio = 0.82, stiffness = 362.5), the spec behind '
+          'Miuix ListPopup, driven by SpringSimulation instead of a Curve. '
+          'Long-press the card.',
+      children: <Widget>[
+        Center(
+          child: GestureDetector(
+            onLongPress: _toggle,
+            onTap: _open ? _toggle : null,
+            child: AnimatedBuilder(
+              animation: _controller,
+              builder: (BuildContext context, Widget? child) {
+                final double v =
+                    _controller.value.clamp(0.0, 1.0).toDouble();
+                return Column(
+                  children: <Widget>[
+                    Transform.scale(
+                      scale: 1 - 0.04 * v,
+                      child: Container(
+                        height: 150,
+                        width: 240,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(18),
+                          gradient: const LinearGradient(
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                            colors: <Color>[
+                              CupertinoColors.systemIndigo,
+                              CupertinoColors.systemPurple,
+                            ],
+                          ),
+                        ),
+                        child: const Center(
+                          child: Text(
+                            'Long-press me',
+                            style: TextStyle(
+                              color: CupertinoColors.white,
+                              fontSize: 17,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                    IgnorePointer(
+                      ignoring: !_open,
+                      child: Opacity(
+                        opacity: v,
+                        child: Transform.scale(
+                          scale: 0.86 + 0.14 * v,
+                          alignment: Alignment.topCenter,
+                          child: Container(
+                            width: 240,
+                            padding: const EdgeInsets.symmetric(vertical: 6),
+                            decoration: BoxDecoration(
+                              color: CupertinoColors
+                                  .secondarySystemGroupedBackground
+                                  .resolveFrom(context),
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                            child: const Column(
+                              children: <Widget>[
+                                _MiuixMenuRow('Copy', CupertinoIcons.doc_on_doc),
+                                _MiuixMenuRow('Share', CupertinoIcons.share),
+                                _MiuixMenuRow('Delete', CupertinoIcons.trash),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                );
+              },
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _MiuixMenuRow extends StatelessWidget {
+  const _MiuixMenuRow(this.label, this.icon);
+
+  final String label;
+  final IconData icon;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+      child: Row(
+        children: <Widget>[
+          Text(label, style: const TextStyle(fontSize: 16)),
+          const Spacer(),
+          Icon(icon, size: 18),
         ],
       ),
     );
