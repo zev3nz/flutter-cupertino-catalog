@@ -1,0 +1,60 @@
+name: Build Cupertino Catalog APK
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build release APK
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Generate Android platform files
+        run: |
+          flutter --version
+          flutter create --platforms=android --org dev.zevenz --project-name cupertino_catalog _scaffold
+          cp -r _scaffold/android .
+          rm -rf _scaffold
+          sed -i 's/android:label="cupertino_catalog"/android:label="Cupertino Catalog"/' android/app/src/main/AndroidManifest.xml
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Build release APK
+        run: flutter build apk --release
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: cupertino-catalog-apk
+          path: build/app/outputs/flutter-apk/app-release.apk
+          if-no-files-found: error
+
+      - name: Publish APK as GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "build-${{ github.run_number }}" \
+            build/app/outputs/flutter-apk/app-release.apk \
+            --title "Cupertino Catalog build ${{ github.run_number }}" \
+            --notes "Release APK for the Flutter Cupertino widget catalog. Built from commit ${{ github.sha }}."
