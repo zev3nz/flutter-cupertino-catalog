@@ -1741,12 +1741,18 @@ class _FullscreenDialogDemo extends StatelessWidget {
       ),
       child: ListView(
         padding: const EdgeInsets.all(20),
-        children: const <Widget>[
+        children: <Widget>[
           CupertinoListSection.insetGrouped(
-            header: Text('Event'),
-            children: <Widget>[
-              CupertinoListTile(title: Text('Title'), subtitle: Text('Untitled')),
-              CupertinoListTile(title: Text('Location'), subtitle: Text('None')),
+            header: const Text('Event'),
+            children: const <Widget>[
+              CupertinoListTile(
+                title: Text('Title'),
+                subtitle: Text('Untitled'),
+              ),
+              CupertinoListTile(
+                title: Text('Location'),
+                subtitle: Text('None'),
+              ),
             ],
           ),
           SizedBox(height: 12),
